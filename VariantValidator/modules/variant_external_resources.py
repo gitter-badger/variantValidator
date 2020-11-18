@@ -90,18 +90,23 @@ def get_external_resource_links(validated_hgvs_variant):
 
     :param validated_hgvs_variant:
     :return: url_dict: urls for dbSNP and ClinVar where the identifiers
-            have been retrieved from NCBI Variation Services
+            have been retrieved from NCBI Variation Services. If an error is
+            encountered, the error is returned in the url_dict instead
     """
+    # initialise dictionary to store urls for dbSNP and ClinVar or errors/warnings
+    url_dict = {}
 
     # check empty string hasn't been passed in
     try:
         if validated_hgvs_variant == '':
             raise ValueError
-    except ValueError as err:
-        msg = 'Please enter a valid HGVS Genomic Variant'
-        # log message and exit gracefully with error code = 1
+    except ValueError as err:       
+        msg = 'Please enter a HGVS Genomic Variant'
+        url_dict['error_msg'] = msg
+        # log error message and return dictionary containing the warning/error
         log_exception(msg, err)
-        raise SystemExit(1)
+        # print(url_dict)
+        return url_dict
 
     # set rsid and accession_version to None.
     # If found, they will be set to the retrieved value
@@ -121,7 +126,7 @@ def get_external_resource_links(validated_hgvs_variant):
 
         # NCBI Variation services returns errors in a dictionary
         if 'error' in resp_dict:
-            raise CustomException(Exception)
+            	raise CustomException(Exception)      
         elif 'data' in resp_dict:
 
             # construct the SPDI string from the response - we have a dictionary
@@ -132,12 +137,15 @@ def get_external_resource_links(validated_hgvs_variant):
                       resp_dict['data']['spdis'][0]['inserted_sequence']
 
     except CustomException:
-        msg = "An occurred: " + resp_dict['error']['message']
+        msg = "An error occurred: " + resp_dict['error']['message']
         err = str(resp_dict['error']['code'])
+        url_dict['error_msg'] = msg
+        url_dict['error_code'] = err
 
-        # log message and exit gracefully with error code = 1
+        # log message and return warning messages
         log_exception(msg, err)
-        raise SystemExit(1)
+        # print(url_dict)
+        return url_dict
 
     # 2nd call to SPDI apis
     api_service_type = 'spdi'
@@ -152,9 +160,7 @@ def get_external_resource_links(validated_hgvs_variant):
         # NCBI Variation services returns errors in a dictionary
 
         if 'error' in resp_dict2:
-            # if error code is 404 not found, don't raise an exception, continue
-            if not str(resp_dict2['error']['code']) == '404':
-                raise CustomException(Exception)
+            raise CustomException(Exception)
 
         elif 'data' in resp_dict2:
             # construct the rsid string - we have a dictionary containing a
@@ -162,11 +168,15 @@ def get_external_resource_links(validated_hgvs_variant):
             rsid = resp_dict2['data']['rsids'][0]
 
     except CustomException:
-        msg = "An error occurred with error code: " + resp_dict2['error']['message']
+        msg = "An error occurred: " + resp_dict2['error']['message']
         err = str(resp_dict2['error']['code'])
-        # log message and exit gracefully with error code = 1
+        url_dict['error_msg'] = msg
+        url_dict['error_code'] = err
+
+        # log message and return dictionary containing the error
         log_exception(msg, err)
-        raise SystemExit(1)
+        # print(url_dict)
+        return url_dict
 
     # 3rd call to RefSNP api
     api_service_type = 'refsnp'
@@ -181,9 +191,7 @@ def get_external_resource_links(validated_hgvs_variant):
 
             # NCBI Variation services returns errors in a dictionary
             if 'error' in resp_dict3:
-                # if error code is 404 not found, we don't want to raise as an exception, want to continue
-                if not str(resp_dict3['error']['code']) == '404':
-                    raise CustomException
+                raise CustomException
 
             elif 'primary_snapshot_data' in resp_dict3:
 
@@ -200,13 +208,16 @@ def get_external_resource_links(validated_hgvs_variant):
         except CustomException:
             msg = "An occurred with error code: " + resp_dict3['error']['message']
             err = str(resp_dict3['error']['code'])
-            # log message and exit gracefully with error code = 1
+            url_dict['error_msg'] = msg
+            url_dict['error_code'] = err
+
+
+            # log message and return dictionary containing the error
             log_exception(msg, err)
-            raise SystemExit(1)
+            # print(url_dict)
+            return url_dict
 
     # construct the URLs to the external resources and add them to a dictionary
-    url_dict = {}
-
     # only add to the dictionary if we have the identifier for the
     # external resource
     if rsid:
@@ -215,6 +226,7 @@ def get_external_resource_links(validated_hgvs_variant):
         url_dict['clinvar'] = 'http://www.ncbi.nlm.nih.gov/clinvar/' + accession_version
 
     # return dictionary containing the 2 URLS
+    # print(url_dict)
     return url_dict
 
 
@@ -247,12 +259,12 @@ def get_info_from_variation_services(service_identifier, service_type, service_n
         msg = 'https://api.ncbi.nlm.nih.gov/variation/v0/ is currently unavailable'
 
         # add to the log and exit gracefully with error code 1
-        log.exception(msg, exc_info=True)
+        log.warning(msg, exc_info=True)
+        print(msg)
         raise SystemExit(1)
 
     # return the response from NCBI Variant Services as a JSON dictionary
     resp_dict = resp.json()
-
     return resp_dict
 
 
