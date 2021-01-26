@@ -12,12 +12,12 @@ r = requests.get('http://exac.hms.harvard.edu//rest/variant/variant/{}'.format(v
 exac_freq = r.json()
 
 # if loop to run through r, 400 and 404 will print errors and 200 means requests has worked and can continue
-if r == 400
+if r == "Response [400]":
 	print(exac_freq)
-elif r == 404
+elif r == "Response [404]":
 	print(exac_freq)
-elif r == 200
-	continue
+else:
+	print("Request OK")
 
 #  pull information from allele frequency data
 freq = exac_freq['allele_freq']
@@ -35,18 +35,18 @@ r2 = requests.get('http://mygene.info/v3/query?q=exac.transcript:{}&fields=exac'
 constraint_data = r2.json()
 
 # if loop to run through r2, 400 and 404 will print errors and 200 means requests has worked and can continue 
-if r2 == 400
+if r2 == "Response [400]":
 	print(constraint_data)
-elif r2 == 404
+elif r2 == "Response [404]":
 	print(constraint_data)
-elif r2 == 200
-	continue
+else:
+	print("Request OK")
 
 print(json.dumps(constraint_data, sort_keys=True, indent=4, separators=(',', ': ')))
 
-# loop to extract constraint scores from nested dictionary constraint_data
+# loop to extract separated scores (e.g. lof_z) from nested dictionary constraint_data
 #lof_scores = null
-#for key, val in data.items():
+#for key, val in constraint_data.items():
 #	try:
 #		if "exac" in  val.keys():
 #			break
@@ -62,20 +62,20 @@ print(json.dumps(constraint_data, sort_keys=True, indent=4, separators=(',', ': 
 #								continue
 #print(lof_scores)
 
-#or
+#or loop to extract the whole "all" dictionary from nested dictionary constraint_data - this would be ideal
 
 #constraint_scores = null
-#for key, val in data.items():
-#       try:
-#               if "exac" in  val.keys():
-#                       break
-#                       for key ,val in exac.items:
-#                               try:
-#                                       if "all" in val.keys():
+#for key, val in constraint_data.items():
+#	try:
+#		if "exac" in  val.keys():
+#		break
+#			for key ,val in exac.items:
+#				try:
+#					if "all" in val.keys():
 #					constraint_scores = all
-#					break
+#				break
 #				except AttributeError:
-#					continue
+#				continue
 
 
 # print(json.dumps(exac_data_dict, sort_keys=True, indent=4, separators=(',', ': ')))
