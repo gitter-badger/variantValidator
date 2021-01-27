@@ -24,5 +24,5 @@ python vvExacData.py
 
 ## Output
 
-This script outputs a python dictionary which contains allele frequency and population homozygotes for the variant requested and constraint scores for the transcript requested. The separate variant and constraint information will be easily accessible and specific information can be extracted for specific needs. For future use in VariantValidator, the required information can be extracted from the dictionary to create a table that can be presented on VariantValidator. 
+This script outputs a python dictionary (exac_data) which contains allele frequency and population homozygotes for the variant requested and constraint scores for the transcript requested. The separate variant and constraint information will be easily accessible and specific information can be extracted for specific needs. For future use in VariantValidator, the required information can be extracted from the dictionary to create a table that can be presented on VariantValidator. 
 

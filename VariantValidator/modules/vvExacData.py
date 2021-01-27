@@ -96,7 +96,7 @@ print(json.dumps(constraint_scores, sort_keys=True, indent=4, separators=(',', '
 
 #print(json.dumps(exac_data_dict, sort_keys=True, indent=4, separators=(',', ': ')))
 
-# add  constraint scores into dictionary - Sophie
+# 
 
 
 
