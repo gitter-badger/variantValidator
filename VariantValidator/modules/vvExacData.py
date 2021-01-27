@@ -13,11 +13,11 @@ exac_freq = r.json()
 
 # if loop to run through r, 400 and 404 will print errors and 200 means requests has worked and can continue
 if r == "Response [400]":
-	print(exac_freq)
+    print(exac_freq)
 elif r == "Response [404]":
-	print(exac_freq)
+    print(exac_freq)
 else:
-	print("Request OK")
+    print("Request OK")
 
 #  pull information from allele frequency data
 freq = exac_freq['allele_freq']
@@ -36,46 +36,51 @@ constraint_data = r2.json()
 
 # if loop to run through r2, 400 and 404 will print errors and 200 means requests has worked and can continue 
 if r2 == "Response [400]":
-	print(constraint_data)
+    print(constraint_data)
 elif r2 == "Response [404]":
-	print(constraint_data)
+    print(constraint_data)
 else:
-	print("Request OK")
+    print("Request OK")
 
 print(json.dumps(constraint_data, sort_keys=True, indent=4, separators=(',', ': ')))
 
 # loop to extract separated scores (e.g. lof_z) from nested dictionary constraint_data
-#lof_scores = null
-#for key, val in constraint_data.items():
-#	try:
-#		if "exac" in  val.keys():
-#			break
-#			for key ,val in exac.items:
-#				try:
-#					if "all" in val.keys():
-#						break
-#						for key, val in all.keys():
-#							try:
-#								if "lof_z" in all.keys():
-#									lof_scores = val['lof_z']
-#							except AttributeError:
-#								continue
-#print(lof_scores)
 
-#or loop to extract the whole "all" dictionary from nested dictionary constraint_data - this would be ideal
+lof_scores = null
+for key, val in constraint_data.items():
+    try:
+        if "exac" in  val.keys():
+            break
+        for key ,val in exac.items():
+            try:
+                if "all" in val.keys():
+                    break
+                for key, val in all.keys():  # you have collected key and val but arent using them
+                    try:
+                        if "lof_z" in all.keys(): # This could be in key since you collected key
+                            lof_scores = val['lof_z']
+            # NEEDS AN EXCEPT STATEMENT
+    except AttributeError:
+        continue
+print(lof_scores)
 
-#constraint_scores = null
-#for key, val in constraint_data.items():
-#	try:
-#		if "exac" in  val.keys():
-#		break
-#			for key ,val in exac.items:
-#				try:
-#					if "all" in val.keys():
-#					constraint_scores = all
-#				break
-#				except AttributeError:
-#				continue
+
+
+# or loop to extract the whole "all" dictionary from nested dictionary constraint_data - this would be ideal
+
+constraint_scores = null
+for key, val in constraint_data.items():
+    try:
+        if "exac" in val.keys():
+            break
+        for key ,val in exac.items():
+            try:
+                if "all" in val.keys():
+                    constraint_scores = all
+                    break
+            # NEEDS AN EXCEPT STATEMENT
+    except AttributeError:
+        continue
 
 
 # print(json.dumps(exac_data_dict, sort_keys=True, indent=4, separators=(',', ': ')))
