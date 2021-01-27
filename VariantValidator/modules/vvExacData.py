@@ -95,11 +95,12 @@ print(constraint_scores)
 print(json.dumps(constraint_scores, sort_keys=True, indent=4, separators=(',', ': ')))
 
 #print(json.dumps(exac_data_dict, sort_keys=True, indent=4, separators=(',', ': ')))
-
-# 
-
-
-
+'''
+dummy code for dictionary merging later 
+exac_data['allele_freq', 'pop_homs', 'pop_acs']= variant_dictionary['allele_freq', 'pop_homs', 'pop_acs']
+exac_data['keys']=constraint_data['keys']
+print(exac_data)
+'''
 
 
 # <LICENSE>
