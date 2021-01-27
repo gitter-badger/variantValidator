@@ -46,44 +46,48 @@ print(json.dumps(constraint_data, sort_keys=True, indent=4, separators=(',', ': 
 
 # loop to extract separated scores (e.g. lof_z) from nested dictionary constraint_data
 
-lof_scores = null
-for key, val in constraint_data.items():
-    try:
-        if "exac" in  val.keys():
-            break
-        for key ,val in exac.items():
-            try:
-                if "all" in val.keys():
-                    break
-                for key, val in all.keys():  # you have collected key and val but arent using them
-                    try:
-                        if "lof_z" in all.keys(): # This could be in key since you collected key
-                            lof_scores = val['lof_z']
-            # NEEDS AN EXCEPT STATEMENT
-    except AttributeError:
-        continue
-print(lof_scores)
+#lof_scores = null
+#for key, val in constraint_data.items():
+    #try:
+        #if "exac" in  val.keys():
+        #    continue
+       # for key ,val in exac.items():
+            #try:
+                #if "all" in val.keys():
+                #    continue
+               # for key, val in all.keys():  # you have collected key and val but arent using them
+                   # try:
+                      #  if "lof_z" in key: # This could be in key since you collected key
+                     #      lof_scores = val['lof_z']
+                    #except:
+                        #AttributeError:\
+                         #   print("Attribute error, please start again and select another transcript")
+                        #continue
+                        #break
+                            #print(lof_scores)
 
 
 
 # or loop to extract the whole "all" dictionary from nested dictionary constraint_data - this would be ideal
 
-constraint_scores = null
+constraint_scores = None
 for key, val in constraint_data.items():
     try:
-        if "exac" in val.keys():
+        if "hits" in constraint_data.keys():
+            break
+        if "exac" in hits.keys():
             break
         for key ,val in exac.items():
-            try:
-                if "all" in val.keys():
-                    constraint_scores = all
-                    break
-            # NEEDS AN EXCEPT STATEMENT
+            if "all" in exac.keys():
+                print(exac.keys)
+                constraint_scores = all
+                break
     except AttributeError:
-        continue
+                print('Attribute error, please start again and select another transcript')
+print(constraint_scores)
+print(json.dumps(constraint_scores, sort_keys=True, indent=4, separators=(',', ': ')))
 
-
-# print(json.dumps(exac_data_dict, sort_keys=True, indent=4, separators=(',', ': ')))
+#print(json.dumps(exac_data_dict, sort_keys=True, indent=4, separators=(',', ': ')))
 
 # add  constraint scores into dictionary - Sophie
 
