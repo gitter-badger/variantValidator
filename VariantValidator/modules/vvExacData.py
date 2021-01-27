@@ -1,4 +1,4 @@
-# ensure mygene has been installed before
+## ensure mygene has been installed before
 # import required modules
 import json
 import mygene
@@ -10,20 +10,27 @@ import requests
 variant = "12-56360876-G-A"
 r = requests.get('http://exac.hms.harvard.edu//rest/variant/variant/{}'.format(variant))
 exac_freq = r.json()
+population_freq = exac_freq['allele_freq']
+homozygotes = exac_freq['pop_homs']
+population_acs = exac_freq['pop_acs']
+#print(type(exac_freq))
 
 # if loop to run through r, 400 and 404 will print errors and 200 means requests has worked and can continue
 if r == "Response [400]":
-    print(exac_freq)
+	print(exac_freq)
 elif r == "Response [404]":
-    print(exac_freq)
+	print(exac_freq)
 else:
-    print("Request OK")
-
-#  pull information from allele frequency data
-freq = exac_freq['allele_freq']
-print(freq)
-pop_homs = exac_freq['pop_homs']
-print(pop_homs)
+	print("Request OK")
+#create dictionary for population frequencies
+variant_dictionary = {}
+#  transfer pop_homs and pop_acs to variant_dictionary
+variant_dictionary['allele_freq'] = population_freq
+variant_dictionary['pop_homs'] = homozygotes
+variant_dictionary['pop_acs'] = population_acs
+#population_frequency = exac_freq['population_freq']
+#population_counts = exac_freq['pop_acs']
+print(variant_dictionary)
 
 # add allele frequency data into new dictionary - Sophie
 
