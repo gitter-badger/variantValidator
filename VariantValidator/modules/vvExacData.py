@@ -1,13 +1,14 @@
+
 ## ensure mygene has been installed before
 # import required modules
 import json
-import mygene
+#import mygene
 import requests
 
 # create empty dictionary called exac_data_dict ..... - Sophie
 
 # Take VCF variant description from Variant Validator and request data from exac database for variant
-variant = "12-56360876-G-A"
+variant = "14-21853913-T-C"
 r = requests.get('http://exac.hms.harvard.edu//rest/variant/variant/{}'.format(variant))
 exac_freq = r.json()
 population_freq = exac_freq['allele_freq']
@@ -73,34 +74,47 @@ print(json.dumps(constraint_data, sort_keys=True, indent=4, separators=(',', ': 
                         #break
                             #print(lof_scores)
 
+###NEW SCRIPT SOPHIE - loop to extract the whole "all" dictionary from nested dictionary constraint_data - this would be ideal
+#constraint data[exac[]]
+exac_constraint = {}
+exac_data = {}
 
-
-# or loop to extract the whole "all" dictionary from nested dictionary constraint_data - this would be ideal
-
-constraint_scores = None
-for key, val in constraint_data.items():
+for hit in constraint_data['hits']:
     try:
-        if "hits" in constraint_data.keys():
-            break
-        if "exac" in hits.keys():
-            break
-        for key ,val in exac.items():
-            if "all" in exac.keys():
-                print(exac.keys)
-                constraint_scores = all
-                break
-    except AttributeError:
-                print('Attribute error, please start again and select another transcript')
-print(constraint_scores)
-print(json.dumps(constraint_scores, sort_keys=True, indent=4, separators=(',', ': ')))
+        exac_constraint = hit['exac']['all']
+    except KeyError:
+        print("Key not found! APIs are a pain in the bum!")
+    finally:
+        print(exac_constraint)
 
-#print(json.dumps(exac_data_dict, sort_keys=True, indent=4, separators=(',', ': ')))
-'''
-dummy code for dictionary merging later 
-exac_data['allele_freq', 'pop_homs', 'pop_acs']= variant_dictionary['allele_freq', 'pop_homs', 'pop_acs']
-exac_data['keys']=constraint_data['keys']
+exac_data.update(variant_dictionary)
+exac_data.update(exac_constraint)
 print(exac_data)
-'''
+
+
+# constraint_scores = None
+# for key, val in constraint_data.items():
+#     try:
+#         if "hits" in constraint_data.keys():
+#             break
+#         if "exac" in hits.keys():
+#             break
+#         for key ,val in exac.items():
+#             if "all" in exac.keys():
+#                 print(exac.keys)
+#                 constraint_scores = all
+#                 break
+#     except AttributeError:
+#                 print('Attribute error, please start again and select another transcript')
+# print(constraint_scores)
+# print(json.dumps(constraint_scores, sort_keys=True, indent=4, separators=(',', ': ')))
+
+# print(json.dumps(exac_data_dict, sort_keys=True, indent=4, separators=(',', ': ')))
+
+# dummy code for dictionary merging later 
+
+
+
 
 
 # <LICENSE>
