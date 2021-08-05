@@ -23,6 +23,10 @@ from VariantValidator.settings import CONFIG_DIR
 from VariantValidator.version import __version__
 
 
+class InitialisationError(Exception):
+    pass
+
+
 class Mixin:
     """
     This mixin is the first for the validator object, which is instantiated in order to perform validator functions.
@@ -65,26 +69,34 @@ class Mixin:
 
         self.seqrepoVersion = config["seqrepo"]["version"]
         self.seqrepoPath = os.path.join(config["seqrepo"]["location"], self.seqrepoVersion)
+        self.vvdbVersion = config["mysql"]["version"]
         os.environ['HGVS_SEQREPO_DIR'] = self.seqrepoPath
 
-        os.environ['UTA_DB_URL'] = "postgresql://%s:%s@%s/%s/%s" % (
+        os.environ['UTA_DB_URL'] = "postgresql://%s:%s@%s:%s/%s/%s" % (
             config["postgres"]["user"],
             config["postgres"]["password"],
             config['postgres']['host'],
+            config['postgres']['port'],
             config['postgres']['database'],
             config['postgres']['version']
         )
         self.utaPath = os.environ.get('UTA_DB_URL')
+        # print(self.utaPath)
 
         self.dbConfig = {
             'user':     config["mysql"]["user"],
             'password': config["mysql"]["password"],
             'host':     config["mysql"]["host"],
+            'port':     int(config["mysql"]["port"]),
             'database': config["mysql"]["database"],
             'raise_on_warnings': True
         }
         # Create database access objects
         self.db = Database(self.dbConfig)
+        db_version = self.db.get_db_version()
+        if db_version[0] != config["mysql"]["version"]:
+            raise InitialisationError("Config error: VVDb version in config file is incorrect. VDb version is "
+                                      + db_version[0])
 
         # Set up versions
         self.version = __version__
@@ -200,8 +212,9 @@ class Mixin:
         return {
             'variantvalidator_version': self.version,
             'variantvalidator_hgvs_version': self.hgvsVersion,
-            'uta_schema': self.utaSchema,
-            'seqrepo_db': self.seqrepoPath
+            'vvta_version': self.utaSchema,
+            'vvseqrepo_db': self.seqrepoPath,
+            'vvdb_version': self.vvdbVersion
         }
 
     def myc_to_p(self, hgvs_transcript, evm, re_to_p, hn):
@@ -528,7 +541,7 @@ class Mixin:
             return hgvs_transcript_to_hgvs_protein
 
 # <LICENSE>
-# Copyright (C) 2019 VariantValidator Contributors
+# Copyright (C) 2016-2021 VariantValidator Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as

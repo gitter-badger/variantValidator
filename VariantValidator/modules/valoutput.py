@@ -185,12 +185,13 @@ class ValOutput(object):
         # metadata['entrez_id'] = self.entrezID
         metadata['variantvalidator_version'] = self.validator.version
         metadata['variantvalidator_hgvs_version'] = self.validator.hgvsVersion
-        metadata['uta_schema'] = self.validator.utaSchema
-        metadata['seqrepo_db'] = self.validator.seqrepoVersion
+        metadata['vvta_version'] = self.validator.utaSchema
+        metadata['vvseqrepo_db'] = self.validator.seqrepoVersion
+        metadata['vvdb_version'] = self.validator.vvdbVersion
         return metadata
 
 # <LICENSE>
-# Copyright (C) 2019 VariantValidator Contributors
+# Copyright (C) 2016-2021 VariantValidator Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as

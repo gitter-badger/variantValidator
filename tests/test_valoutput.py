@@ -35,7 +35,7 @@ class TestValOutput(TestCase):
         self.assertEqual(list(res), ['flag', 'metadata'])
         self.assertIsInstance(res['metadata'], dict)
         self.assertEqual(list(res['metadata']), ['variantvalidator_version', 'variantvalidator_hgvs_version',
-                                                 'uta_schema', 'seqrepo_db'])
+                                                 'vvta_version', 'vvseqrepo_db', 'vvdb_version'])
 
         res2 = obj.format_as_table(with_meta=True)
         self.assertIsInstance(res2, list)
@@ -281,7 +281,7 @@ class TestValOutput(TestCase):
         self.assertEqual(len(res), 4)
 
 # <LICENSE>
-# Copyright (C) 2019 VariantValidator Contributors
+# Copyright (C) 2016-2021 VariantValidator Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as

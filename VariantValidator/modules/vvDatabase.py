@@ -168,11 +168,10 @@ class Database(vvDBInsert.Mixin):
         if 'ENST' in accession:
 
             """
-            Ensembl APIs do not cross-reference FRCh38 and 38 so 3 queries are needed
+            Ensembl APIs do not cross-reference GRCh38 and 38 so 37 queries are needed
             They also interchangeably decide whether or not they accept version information
             Therefore, assume they do not and check using Accession.Version Python split 
             """
-
             enst_accession, enst_version = accession.split('.')
             try:
                 genome_build = kwargs['genome_build']
@@ -189,13 +188,14 @@ class Database(vvDBInsert.Mixin):
 
             # Check version
             try:
-                if enst_version == str(ens_json['version']):
+                if enst_version in str(ens_json['version']):
                     version = accession
                     description = str(ens_json['display_name'])
                     genbank_symbol = description.split('-')[0]
-                    select_tx = False
                     if ens_json['is_canonical'] == 1:
                         select_tx = 'Ensembl'
+                    else:
+                        select_tx = False
                     ensemblgene_id = ens_json['Parent']
                     mapped_chr = ens_json['seq_region_name']
                     map_position = "chr%s:%s:%s" % (mapped_chr, ens_json['start'], ens_json['end'])
@@ -211,11 +211,8 @@ class Database(vvDBInsert.Mixin):
                         ccds_id = None
 
                     # Get gene db_xref
-                    mim_id = None
                     hgnc_id = None
                     gene_name = None
-                    synonyms = []
-
                     gene_xrefs = utils.ensembl_rest(id=ensemblgene_id,
                                                     endpoint="/xrefs/id/",
                                                     genome=genome_build)
@@ -224,22 +221,39 @@ class Database(vvDBInsert.Mixin):
                         if xref['dbname'] == 'HGNC':
                             hgnc_id = xref['primary_id']
                             gene_name = xref['description']
-                            # synonyms = xref['synonyms']
-                        # if xref['dbname'] == 'MIM_GENE':
-                            # mim_id = xref['primary_id']
+
+                    # Get MANE status and Ensembl canonical status
+                    mane_select = False
+                    ensembl_select = False
+                    mane_plus_clinical = False
+                    if select_tx == "Ensembl":
+                        ensembl_select = True
+                    tark_record = utils.ensembl_tark(id=enst_accession + '.' + enst_version,
+                                                     endpoint="/api/transcript/stable_id_with_version/")
+                    tark_json = tark_record['record']
+
+                    if 'mane_transcript_type' in tark_json['results'][0].keys():
+                        if tark_json['results'][0]['mane_transcript_type'] == "MANE SELECT":
+                            mane_select = True
+                            select_tx = 'MANE'
+                        else:
+                            mane_plus_clinical = True
 
                     # Compile metadata dictionary
                     variant = {"db_xref": {"ensemblgene": ensemblgene_id,
                                            "ncbigene": None,
-                                           "HGNC": "HGNC:" + hgnc_id,
-                                           # "MIM": mim_id,
+                                           "HGNC": hgnc_id,
                                            "CCDS": ccds_id,
                                            "select": select_tx},
                                "chromosome": mapped_chr,
                                "map": map_position,
                                # "gene_synonym": synonyms,
                                "note": gene_name,
-                               "variant": description.split('-')[1]}
+                               "variant": description.split('-')[1],
+                               "mane_select": mane_select,
+                               "mane_plus_clinical": mane_plus_clinical,
+                               "ensembl_select": ensembl_select,
+                               "refseq_select": False}
 
                 else:
                     warning = "Ensembl transcript %s is not identified in the Ensembl APIs" % accession
@@ -254,7 +268,10 @@ class Database(vvDBInsert.Mixin):
                         logger.info("Unable to connect to genenames.org with symbol %s", bypass_with_symbol)
                         connection_error = "Cannot connect to genenames.org with symbol %s", bypass_with_symbol
                 raise utils.DatabaseConnectionError(connection_error)
-
+            except Exception as e:
+                warning = "Ensembl transcript %s is not identified in the Ensembl APIs" % accession
+                warning = "Ensembl transcript %s is not identified in the Ensembl APIs" % accession
+                raise utils.DatabaseConnectionError(warning)
         else:
             """
             Search Entrez for corresponding record for the RefSeq ID
@@ -275,8 +292,11 @@ class Database(vvDBInsert.Mixin):
 
             version = record.id
             description = record.description
-            genbank_symbol = str(record.features[1].qualifiers['gene'][0])
-
+            try:
+                genbank_symbol = str(record.features[1].qualifiers['gene'][0])
+            except KeyError:
+                raise utils.DatabaseConnectionError("Gene information is not available in the RefSeq record. Record "
+                                                    "potentially deprecated")
             try:
                 # Genbank can be out-of-date so check this is not a historic record
                 # First perform a search against the input gene symbol or the symbol inferred from UTA
@@ -341,6 +361,7 @@ class Database(vvDBInsert.Mixin):
 
             # merge dicts
             all_tags = {**my_quals, **my_tags}
+
             # Format dict
             all_tags_formatted = {}
             for key, val in all_tags.items():
@@ -356,6 +377,22 @@ class Database(vvDBInsert.Mixin):
             # Compile metadata dictionary
             all_tags_formatted["db_xref"]["ncbigene"] = all_tags_formatted["db_xref"].pop("GeneID")
             all_tags_formatted["db_xref"]["ensemblgene"] = None
+            all_tags_formatted["refseq_select"] = False
+            all_tags_formatted["mane_select"] = False
+            all_tags_formatted["ensembl_select"] = False
+            all_tags_formatted["mane_plus_clinical"] = False  # Placeholder, not seen in RefSeq records yet
+            if all_tags_formatted["db_xref"]["select"] == "MANE":
+                all_tags_formatted["mane_select"] = True
+                all_tags_formatted["refseq_select"] = True  # Assumes no conflict between MANE Select and RefSeq Select
+            if all_tags_formatted["db_xref"]["select"] == "RefSeq":
+                all_tags_formatted["refseq_select"] = True
+            try:
+                all_tags_formatted["db_xref"]["HGNC"] = "HGNC:" + all_tags_formatted["db_xref"]["HGNC"]
+            except KeyError:
+                all_tags_formatted["db_xref"]["HGNC"] = None
+            if all_tags_formatted["db_xref"]["select"] == "False":
+                all_tags_formatted["db_xref"]["select"] = False
+
             variant = all_tags_formatted
 
         """
@@ -370,7 +407,7 @@ class Database(vvDBInsert.Mixin):
                 try:
                     uta_info = validator.hdp.get_tx_identity_info(version)
                 except vvhgvs.exceptions.HGVSDataNotAvailableError:
-                    raise utils.DatabaseConnectionError("The requested transcript is not supported")
+                    raise utils.DatabaseConnectionError("The requested transcript was not found in the VVTA database")
 
             uta_symbol = str(uta_info[6])
             if uta_symbol == '':
@@ -401,9 +438,9 @@ class Database(vvDBInsert.Mixin):
 
         # Fill in missing keys
         try:
-            variant["db_xref"]["HGNC"]
+            variant["db_xref"]["hgnc"] = variant["db_xref"].pop("HGNC")
         except KeyError:
-            variant["db_xref"]["HGNC"] = None
+            variant["db_xref"]["hgnc"] = None
         try:
             variant["db_xref"].pop("MIM")
         except KeyError:
@@ -416,6 +453,8 @@ class Database(vvDBInsert.Mixin):
             variant.pop("previous_symbol")
         except KeyError:
             pass
+
+        # print(json.dumps(variant, sort_keys=False, indent=4, separators=(',', ': ')))
 
         # Make into a json for storage
         variant = json.dumps(variant)
@@ -490,7 +529,7 @@ class Database(vvDBInsert.Mixin):
         return ref_type
 
 # <LICENSE>
-# Copyright (C) 2019 VariantValidator Contributors
+# Copyright (C) 2016-2021 VariantValidator Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
