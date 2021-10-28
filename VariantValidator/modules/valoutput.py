@@ -40,9 +40,6 @@ class ValOutput(object):
 
                 # if identification_key not in validation_output.keys():
                 validation_output[identification_key] = variant.output_dict(test=test)
-                # else:
-                # dotter = dotter + ' '
-                # validation_output[identification_key + dotter] = valid_v
 
             # For warning only outputs
             # Should only ever be 1 output as an error or a warning of the following types
@@ -51,9 +48,7 @@ class ValOutput(object):
 
             # Note, currently there are no NM_ mito transcripts. This is expected to change. For now mito will
             # be handled here
-
             if variant.output_type_flag == 'warning':
-                # validation_output['flag'] = 'warning'
                 if variant.warnings == ['Validation error']:
                     validation_error_counter = validation_error_counter + 1
                     identification_key = 'validation_error_%s' % validation_error_counter
@@ -64,6 +59,7 @@ class ValOutput(object):
                     validation_warning_counter = validation_warning_counter + 1
                     identification_key = 'validation_warning_%s' % validation_warning_counter
                 validation_output[identification_key] = variant.output_dict(test=test)
+
             elif variant.output_type_flag == 'mitochondrial':
                 validation_output['flag'] = 'mitochondrial'
                 if variant.warnings == ['Validation error']:
@@ -76,7 +72,6 @@ class ValOutput(object):
                     validation_warning_counter = validation_warning_counter + 1
                     identification_key = 'mitochondrial_variant_%s' % validation_warning_counter
                 validation_output[identification_key] = variant.output_dict(test=test)
-
 
             # Intergenic variants
             if variant.output_type_flag == 'intergenic':
@@ -107,7 +102,7 @@ class ValOutput(object):
         if with_meta:
             outputstrings.append('# Metadata: ' + ', '.join(['%s: %s' % (k, v) for k, v in self.add_meta().items()]))
 
-        outputstrings.append(['Input', 'Warnings', 'HGVS_transcript', 'HGVS_intronic_chr_context',
+        outputstrings.append(['Input', 'Warnings', 'Select transcript', 'HGVS_transcript', 'HGVS_intronic_chr_context',
                               'HGVS_intronic_rsg_context', 'HGVS_RefSeqGene', 'HGVS_LRG',
                               'HGVS_LRG_transcript', 'HGVS_Predicted_Protein', 'HGVS_Genomic_GRCh37', 'GRCh37_CHR',
                               'GRCh37_POS', 'GRCh37_ID', 'GRCh37_REF', 'GRCh37_ALT', 'HGVS_Genomic_GRCh38',
@@ -139,9 +134,19 @@ class ValOutput(object):
             if variant.stable_gene_ids:
                 if 'hgnc_id' in variant.stable_gene_ids:
                     gene_id = variant.stable_gene_ids['hgnc_id']
+
+            select_tx = None
+            try:
+                select_tx = variant.annotations['db_xref']['select']
+            except TypeError:
+                pass
+            except KeyError:
+                pass
+
             outputstrings.append([
                 variant.original,
                 '|'.join(variant.process_warnings()),
+                select_tx,
                 variant.hgvs_transcript_variant,
                 variant.genome_context_intronic_sequence,
                 variant.refseqgene_context_intronic_sequence,
@@ -174,15 +179,6 @@ class ValOutput(object):
         :return:
         """
         metadata = {}
-
-        # metadata["variant"] = batch_variant  # original input string to validate function
-        # metadata["assembly"] = selected_assembly
-        # metadata["transcripts"] = select_transcripts
-        # metadata['seqrepo_directory'] = self.seqrepoPath
-        # metadata['uta_url'] = self.utaPath
-        # metadata['py_liftover_directory'] = self.liftoverPath
-        # metadata['variantvalidator_data_url'] = self.db.path
-        # metadata['entrez_id'] = self.entrezID
         metadata['variantvalidator_version'] = self.validator.version
         metadata['variantvalidator_hgvs_version'] = self.validator.hgvsVersion
         metadata['vvta_version'] = self.validator.utaSchema

@@ -7,6 +7,7 @@ from . import vvMixinInit
 from . import seq_data
 from . import hgvs_utils
 from Bio import Entrez, SeqIO
+from Bio.Seq import Seq
 from . import utils as fn
 import sys
 import traceback
@@ -1650,9 +1651,9 @@ class Mixin(vvMixinInit.Mixin):
         hgvs_genomic_forced_delins = None
         if hgvs_genomic.posedit.edit.type == 'ins':
             start = hgvs_genomic.posedit.pos.start.base
-            base = self.sf.fetch_seq(
-                    str(hgvs_genomic.ac),start_i=start - 1, end_i=start)
+            base = self.sf.fetch_seq(str(hgvs_genomic.ac), start_i=start - 1, end_i=start)
             alt = base + hgvs_genomic.posedit.edit.alt
+            # Note, create a hgvs delins without parsing
             hgvs_genomic_forced_delins = vvhgvs.sequencevariant.SequenceVariant(
                     ac=hgvs_genomic.ac,
                     type="g",
@@ -1665,6 +1666,26 @@ class Mixin(vvMixinInit.Mixin):
                         vvhgvs.edit.NARefAlt(ref=base, alt=alt)
                         )
                     )
+        if hgvs_genomic.posedit.edit.type == 'inv':
+            base = self.sf.fetch_seq(str(hgvs_genomic.ac),
+                                     start_i=hgvs_genomic.posedit.pos.start.base - 1,
+                                     end_i=hgvs_genomic.posedit.pos.end.base)
+            my_seq = Seq(base)
+            alt = str(my_seq.reverse_complement())
+            # Note, create a hgvs delins without parsing
+            hgvs_genomic = vvhgvs.sequencevariant.SequenceVariant(
+                    ac=hgvs_genomic.ac,
+                    type="g",
+                    posedit=vvhgvs.posedit.PosEdit(
+                        vvhgvs.location.Interval(
+                            start=vvhgvs.location.SimplePosition(base=hgvs_genomic.posedit.pos.start.base),
+                            end=vvhgvs.location.SimplePosition(base=hgvs_genomic.posedit.pos.end.base),
+                            uncertain=hgvs_genomic.posedit.pos.uncertain
+                            ),
+                        vvhgvs.edit.NARefAlt(ref=base, alt=alt)
+                        )
+                    )
+
         # Project genomic variants to new transcripts
         # and  populate a code_var list
         #############################################
@@ -1682,7 +1703,7 @@ class Mixin(vvMixinInit.Mixin):
                 if hgvs_genomic_forced_delins:
                     curr_genomic = hgvs_genomic_forced_delins
                     try:
-                        variant = evm.g_to_t(hgvs_genomic_forced_delins, y)
+                        evm.g_to_t(hgvs_genomic_forced_delins, y)
                     except vvhgvs.exceptions.HGVSError:
                         pass
                 # Check for non-coding transcripts
@@ -1693,6 +1714,7 @@ class Mixin(vvMixinInit.Mixin):
             except Exception as err:
                 logger.warning('non expected err type', str(err))
                 continue
+
             # Corrective Normalisation of intronic descriptions in the antisense oriemtation
             if '+' in str(variant) or '-' in str(variant) or '*' in str(variant):
                 tx_ac = variant.ac
@@ -1702,13 +1724,11 @@ class Mixin(vvMixinInit.Mixin):
                 try:
                     tx_exons = self.hdp.get_tx_exons(tx_ac, alt_ac, alt_aln_method)
                 except vvhgvs.exceptions.HGVSError as e:
-                    tx_exons = 'hgvs Exception: ' + str(e)
-                    return tx_exons
+                    continue
                 try:
-                    completion = tx_exons[0]['alt_strand']
+                    tx_exons[0]['alt_strand']
                 except TypeError:
-                    tx_exons = 'error'
-                    return tx_exons
+                    continue
                 # If on the reverse strand, reverse the order of elements
                 if tx_exons[0]['alt_strand'] == -1:
                     tx_exons = tx_exons[::-1]
@@ -1736,6 +1756,7 @@ class Mixin(vvMixinInit.Mixin):
                 continue
             else:
                 code_var.append(variant)
+
         return code_var
 
     def validateHGVS(self, query):

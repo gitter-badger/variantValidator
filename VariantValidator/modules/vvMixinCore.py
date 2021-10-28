@@ -65,10 +65,14 @@ class Mixin(vvMixinConverters.Mixin):
                 select_transcripts_list = select_transcripts.split('|')
                 for trans_id in select_transcripts_list:
                     trans_id = trans_id.strip()
+
+                    # Select LRG equivalent transcripts
                     if 'LRG' in trans_id:
                         trans_id = self.db.get_refseq_transcript_id_from_lrg_transcript_id(trans_id)
                         if trans_id == 'none':
                             continue
+
+                    # Create dictionaries
                     select_transcripts_dict_plus_version[trans_id] = ''
                     trans_id = trans_id.split('.')[0]
                     select_transcripts_dict[trans_id] = ''
@@ -203,7 +207,7 @@ class Mixin(vvMixinConverters.Mixin):
                             continue
 
                         except vvhgvs.exceptions.HGVSParseError as e:
-                            my_variant.warnings = [str(e)]
+                            my_variant.warnings.append(str(e))
                             logger.warning(str(e))
                             continue
 
@@ -211,14 +215,17 @@ class Mixin(vvMixinConverters.Mixin):
                         # See issue #176
                         except Exception:
                             if 'does not agree with reference sequence' in checkref:
-                                my_variant.warnings = [str(e)]
+                                my_variant.warnings.append(str(e))
                                 logger.warning(str(e))
                                 continue
 
                         if 'base start position must be <= end position' in str(e):
                             toskip = None
                         else:
-                            my_variant.warnings = [str(e)]
+                            my_variant.warnings.append(str(e))
+                            if "The entered coordinates do not agree with the intron/exon boundaries for the selected " \
+                               "transcript" not in my_variant.warnings[0]:
+                                my_variant.warnings.reverse()
                             logger.warning(str(e))
                             continue
 
@@ -483,6 +490,9 @@ class Mixin(vvMixinConverters.Mixin):
                         try:
                             toskip = mappers.transcripts_to_gene(my_variant, self, select_transcripts_dict_plus_version)
                         except mappers.MappersError:
+                            my_variant.output_type_flag = 'warning'
+                            continue
+                        except vvhgvs.exceptions.HGVSInvalidVariantError:
                             my_variant.output_type_flag = 'warning'
                             continue
                         if toskip:
@@ -1118,6 +1128,18 @@ class Mixin(vvMixinConverters.Mixin):
                         if alt_genomic_loci:
                             variant.alt_genomic_loci = alt_genomic_loci
 
+                # Remove duplicate warnings
+                variant_warnings = []
+                accession = variant.hgvs_transcript_variant.split(':')[0]
+                term = "(" + accession + ")"
+                for vt in variant.warnings:
+                    #  Do not warn a transcript update is available for the most recent transcript
+                    if term in vt and "A more recent version of the selected reference sequence" in vt:
+                        continue
+                    else:
+                        variant_warnings.append(vt)
+                variant.warnings = variant_warnings
+
                 # Append to a list for return
                 batch_out.append(variant)
 
@@ -1232,7 +1254,7 @@ class Mixin(vvMixinConverters.Mixin):
         genes_and_tx = []
         recovered = []
         for line in tx_for_gene:
-            if line[3].startswith('NM_') or line[3].startswith('NR_'):
+            if (line[3].startswith('NM_') or line[3].startswith('NR_')) and '..' not in line[3]:
                 # Transcript ID
                 tx = line[3]
 
@@ -1319,12 +1341,17 @@ class Mixin(vvMixinConverters.Mixin):
                         logger.warning(error)
                     tx_description = self.db.get_transcript_description(tx)
 
+                # Get annotation
+                tx_annotation = self.db.get_transcript_annotation(tx)
+                tx_annotation = json.loads(tx_annotation)
+
                 # Check for duplicates
                 if tx not in recovered:
                     recovered.append(tx)
                     if len(line) >= 3 and isinstance(line[1], int):
                         genes_and_tx.append({'reference': tx,
                                              'description': tx_description,
+                                             'annotations': tx_annotation,
                                              'translation': prot_id,
                                              'length': tx_len,
                                              'coding_start': line[1] + 1,
@@ -1335,6 +1362,7 @@ class Mixin(vvMixinConverters.Mixin):
                     else:
                         genes_and_tx.append({'reference': tx,
                                              'description': tx_description,
+                                             'annotations': tx_annotation,
                                              'translation': prot_id,
                                              'length': tx_len,
                                              'coding_start': None,
@@ -1347,6 +1375,7 @@ class Mixin(vvMixinConverters.Mixin):
                     if lrg_transcript != 'none':
                         genes_and_tx.append({'reference': lrg_transcript,
                                              'description': tx_description,
+                                             'annotations': tx_annotation,
                                              'length': tx_len,
                                              'translation': lrg_transcript.replace('t', 'p'),
                                              'coding_start': line[1] + 1,

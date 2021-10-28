@@ -86,8 +86,8 @@ Download and our pre-populated database to MySQL as follows. ***Note: check [her
 
 ```bash
 $ wget https://www528.lamp.le.ac.uk/vvdata/validator/validator_2021-07-21.sql.gz
-$ gunzip alidator_2021-07-21.sql.gz
-$ mysql validator < validator_2021-07-21.sql
+$ gunzip validator_2021-07-21.sql.gz
+$ mysql validator < validator_2021-07-21.sql -u HOST -p
 ```
 
 See the [Manual](MANUAL.md) for instructions on updating this database, which should be done regularly.
@@ -102,14 +102,15 @@ VariantValidator requires a local SeqRepo database. The seqrepo package has alre
 
 ```
 $ mkdir /path/to/seqrepo
-$ cd mkdir /path/to/seqrepo
+$ cd /path/to/seqrepo
 $ wget https://www528.lamp.le.ac.uk/vvdata/vv_seqrepo/VV_SR_2021_2.tar
 $ tar -xvf VV_SR_2021_2.tar
+$ rm VV_SR_2021_2.tar
 ```
 where /path/to/seqrepo should be where you install the database e.g. /Users/Shared/seqrepo_dumps/ or /local/seqrepo
 
 
-## Setting up UTA database (PostGreSQL >=10.5)
+## Setting up VVTA database (PostGreSQL >=10.5)
 
 You will need to install a local version of the VVTA database. 
 
@@ -119,7 +120,7 @@ First create the database and a user account:
 psql
 CREATE ROLE <USER> WITH CREATEDB;
 ALTER ROLE <USER> WITH LOGIN;
-ALTER ROLE <USER> WITH PASSWORD '<password>'
+ALTER ROLE <USER> WITH PASSWORD '<password>';
 CREATE DATABASE vvta WITH OWNER=<USER> TEMPLATE=template0;
 ```
 Where:
